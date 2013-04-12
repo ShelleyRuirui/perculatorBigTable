@@ -21,4 +21,12 @@ public class Column {
 			return ((Column) o).colName.equals(this.colName);
 		return false;
 	}
+	
+	public String toString(){
+		return colName;
+	}
+	
+	public int hashCode(){
+		return toString().hashCode();
+	}
 }

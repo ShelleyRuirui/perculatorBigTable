@@ -28,21 +28,29 @@ public class RowTransaction {
 		//first get relevant version from local stored values
 		TempColumnData curItems=tempReadValues.get(col);
 		
-		String localResult=curItems.getRightResult(end_ts);
-		if(localResult!=null)
-			return localResult;
+		if(curItems!=null){
+			String localResult=curItems.getRightResult(end_ts);
+			if(localResult!=null )
+				return localResult;
+			
+			//Actually null value was stored
+			if(curItems.containsTimestamp)
+				return null;
+		}
 		
-		if(curItems.containsTimestamp)
-			return null;
-		
+		curItems=new TempColumnData();
+		tempReadValues.put(col, curItems);
 		//If not stored locally,first fetch it from the original table and then store it in the local
 		ValueWithTimestamp readVal=fatherTable.read(row, col, start_ts, end_ts);
 		//Add to local
-		if(readVal==null)
-			return null;
 		
-		String result="";
-		return result;
+		if(readVal==null){
+			curItems.addCachedValue(null,0, end_ts);
+			return null;
+		}
+		
+		curItems.addCachedValue(readVal.value, readVal.timestamp, end_ts);
+		return readVal.value;
 	}
 	
 	public String read(Row row,Column col,long start_ts){

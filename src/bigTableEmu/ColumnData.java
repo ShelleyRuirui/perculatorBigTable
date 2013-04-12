@@ -19,9 +19,11 @@ public class ColumnData {
 		if(largest==-1)
 			return null;
 		String value=versions.get(largest);
-		if(value==null)
-			return null;
 		ValueWithTimestamp result=new ValueWithTimestamp(value,largest);
 		return result;
+	}
+	
+	public void addValue(long timestamp,String value){
+		versions.put(timestamp, value);
 	}
 }

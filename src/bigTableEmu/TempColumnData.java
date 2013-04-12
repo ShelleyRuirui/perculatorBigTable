@@ -19,7 +19,7 @@ public class TempColumnData {
 			if(timespan.length==1){
 				if(end_ts==firstTime){
 					containsTimestamp=true;
-					return entry.getValue();
+					return entry.getKey();
 				}
 				else
 					continue;
@@ -27,7 +27,7 @@ public class TempColumnData {
 				Long secondTime=Long.parseLong(timespan[1]);
 				if(end_ts>=firstTime&&end_ts<=secondTime){
 					containsTimestamp=true;
-					return entry.getValue();
+					return entry.getKey();
 				}else
 					continue;
 			}
@@ -37,5 +37,14 @@ public class TempColumnData {
 	
 	public boolean hasTimestampValue(){
 		return containsTimestamp;
+	}
+	
+	public void addCachedValue(String value,long value_ts,long orig_end_ts){
+		if(orig_end_ts<value_ts){
+			System.out.println("Error in addCachedValue");
+			return;
+		}
+		String timespan=value_ts+","+orig_end_ts;
+		optimizedData.put(value, timespan);
 	}
 }

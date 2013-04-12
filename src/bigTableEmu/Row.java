@@ -21,4 +21,18 @@ public class Row {
 			return ((Row) o).rowKey.equals(this.rowKey);
 		return false;
 	}
+	
+	public String toString(){
+		return rowKey;
+	}
+	
+	public int hashCode(){
+		return toString().hashCode();
+	}
+	
+	public static void main(String[] args){
+		Row r1=new Row("r1");
+		Row r2=new Row("r1");
+		System.out.println(r1.equals(r2));
+	}
 }

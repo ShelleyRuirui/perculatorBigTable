@@ -25,9 +25,16 @@ public class Test {
 		String result=tr.read(new Row("row1"), new Column("col_1"), 1,5);
 		System.out.println(result);
 		
-		result=tr.read(new Row("row1"), new Column("col_1"), 1,3);
+		result=tr.read(new Row("row1"), new Column("col_1"), 8,9);
 		System.out.println(result);
 		
+		tr.write(row1, col1, 10, "Hello10");
+		result=tr.read(new Row("row1"), new Column("col_1"), 8,10);
+		System.out.println(result);
+		
+		tr.write(row1, col1, 5, "Hello5");
+		result=tr.read(new Row("row1"), new Column("col_1"), 2,6);
+		System.out.println(result);
 	}
 
 }

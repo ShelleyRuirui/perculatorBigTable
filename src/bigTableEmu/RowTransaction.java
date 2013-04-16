@@ -28,8 +28,11 @@ public class RowTransaction {
 		//first get relevant version from local stored values
 		TempColumnData curItems=tempReadValues.get(col);
 		
-		if(curItems!=null){
-			String localResult=curItems.getRightResult(end_ts);
+		if(curItems==null){
+			curItems=new TempColumnData();
+			tempReadValues.put(col, curItems);
+		}else{
+			String localResult=curItems.getRightResult(start_ts,end_ts);
 			if(localResult!=null )
 				return localResult;
 			
@@ -38,14 +41,12 @@ public class RowTransaction {
 				return null;
 		}
 		
-		curItems=new TempColumnData();
-		tempReadValues.put(col, curItems);
+		
 		//If not stored locally,first fetch it from the original table and then store it in the local
 		ValueWithTimestamp readVal=fatherTable.read(row, col, start_ts, end_ts);
 		//Add to local
 		
 		if(readVal==null){
-			curItems.addCachedValue(null,0, end_ts);
 			return null;
 		}
 		
@@ -58,11 +59,20 @@ public class RowTransaction {
 		return result;
 	}
 	
-	public void write(Row row,Column col,long commit_ts,long start_ts){
+	public void write(Row row,Column col,long commit_ts,String value){
 		//TODO
 		//Add to local write value
+		tempWriteValues.put(col, value);
 		
 		//Able to read by own read
+		TempColumnData curItems=tempReadValues.get(col);
+		if(curItems == null){
+			curItems=new TempColumnData();
+			curItems.addCachedValue(value, commit_ts, commit_ts);
+			tempReadValues.put(col, curItems);
+		}else{
+			curItems.splitAndInsert(value, commit_ts);
+		}
 	}
 	
 	public void erase(Row row,Column col,long commit_ts){

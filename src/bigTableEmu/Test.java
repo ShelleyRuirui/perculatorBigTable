@@ -9,9 +9,9 @@ public class Test {
 		BigTable table=new BigTable();
 		
 		ColumnData cd1=new ColumnData();
-		cd1.addValue(1, "test1_1_1");
-		cd1.addValue(2, "test1_1_2");
-		cd1.addValue(7, "test1_1_3");
+		cd1.write(1, "test1_1_1");
+		cd1.write(2, "test1_1_2");
+		cd1.write(7, "test1_1_3");
 		
 		RowData rd1=new RowData();
 		
@@ -21,19 +21,23 @@ public class Test {
 		Row row1=new Row("row1");
 		table.addRowAndData(row1, rd1);
 		
-		RowTransaction tr=table.startRowTransaction(row1);
-		String result=tr.read(new Row("row1"), new Column("col_1"), 1,5);
+		NewRowTransaction tr=table.startRowTransaction(row1);
+		String result=tr.read(new Column("col_1"), 1,5);
 		System.out.println(result);
 		
-		result=tr.read(new Row("row1"), new Column("col_1"), 8,9);
+		result=tr.read(new Column("col_1"), 7,7);
 		System.out.println(result);
 		
-		tr.write(row1, col1, 10, "Hello10");
-		result=tr.read(new Row("row1"), new Column("col_1"), 8,10);
+		tr.write(col1, 10, "Hello10");
+		result=tr.read(new Column("col_1"), 11,12);
 		System.out.println(result);
 		
-		tr.write(row1, col1, 5, "Hello5");
-		result=tr.read(new Row("row1"), new Column("col_1"), 2,6);
+		tr.write( col1, 5, "Hello5");
+		result=tr.read( new Column("col_1"), 2,6);
+		System.out.println(result);
+		
+		tr.erase(col1, 6);
+		result=tr.read( new Column("col_1"), 2,6);
 		System.out.println(result);
 	}
 

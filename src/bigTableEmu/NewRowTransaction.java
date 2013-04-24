@@ -88,6 +88,8 @@ public class NewRowTransaction {
 	
 	private ValueWithTimestamp getLocalValue(Column col,long start_ts,long end_ts,boolean hasEnd){
 		ValueWithTimestamp data=localData.get(col);
+		if(data==null)
+			return null;
 		if(hasEnd){
 			if(data.timestamp>=start_ts && data.timestamp<=end_ts)
 				return data;

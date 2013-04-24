@@ -39,6 +39,14 @@ public class Test {
 		tr.erase(col1, 6);
 		result=tr.read( new Column("col_1"), 2,6);
 		System.out.println(result);
+		
+		NewRowTransaction tr2=table.startRowTransaction(row1);
+		result=tr2.read( new Column("col_1"), 9,12);
+		System.out.println(result);
+		
+		tr.commit();
+		result=tr2.read( new Column("col_1"), 9,12);
+		System.out.println(result);
 	}
 
 }

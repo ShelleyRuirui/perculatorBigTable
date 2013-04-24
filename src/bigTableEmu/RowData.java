@@ -34,6 +34,13 @@ public class RowData {
 		cols.put(col, data);
 	}
 	
+	public void print(){
+		for(Map.Entry<Column, ColumnData> entry:cols.entrySet()){
+			System.out.println("\t"+entry.getKey());
+			entry.getValue().print();
+		}
+	}
+	
 	public long getLatestTimestamp(Column col){
 		ColumnData colsData=cols.get(col);
 		if(colsData==null)

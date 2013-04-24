@@ -56,7 +56,7 @@ public class ColumnData {
 		Set<Long> set = versions.descendingKeySet();
 		for(Long version:set){
 			String value=versions.get(version);
-			System.out.println(version+"->"+value);
+			System.out.println("\t\t"+version+"->"+value);
 		}
 	}
 	

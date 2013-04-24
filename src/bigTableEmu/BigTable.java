@@ -47,4 +47,12 @@ public class BigTable {
 			return -1;
 		return rowData.getLatestTimestamp(col);		
 	}
+	
+	public void print(){
+		for(Map.Entry<Row, RowData> entry:rows.entrySet()){
+			System.out.println(entry.getKey());
+			entry.getValue().print();
+			System.out.println("****************");
+		}
+	}
 }

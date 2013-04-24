@@ -53,7 +53,7 @@ public class NewRowTransaction {
 				ValueWithTimestamp data=entry.getValue();
 				fatherTable.write(row, col, data.timestamp, data.value);
 			}
-			return false;
+			return true;
 		}
 	}
 	

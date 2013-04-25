@@ -13,11 +13,11 @@ public class NewRowTransaction {
 	public NewRowTransaction(Row row){
 		this.row=row;
 		localData= new HashMap<Column,ValueWithTimestamp>();
-		prevData=new HashMap<Column,Long>();
 	}
 	
 	public void setTable(BigTable table){
 		fatherTable=table;
+		prevData=fatherTable.getCurrentAllColTimestamp(row);
 	}	
 	
 	public String read(Column col,long start_ts,long end_ts){
@@ -29,7 +29,7 @@ public class NewRowTransaction {
 	}
 	
 	public void write(Column col,long timestamp,String value){
-		checkAndSetStartTimestamp(col);
+//		checkAndSetStartTimestamp(col);
 		ValueWithTimestamp tempData=localData.get(col);
 		if(tempData==null){   //Note that only one version is stored for each column
 			tempData=new ValueWithTimestamp(value,timestamp);
@@ -42,17 +42,20 @@ public class NewRowTransaction {
 	}
 	
 	public boolean commit(){
-		synchronized (this){
+		synchronized (fatherTable){
 			for(Map.Entry<Column, ValueWithTimestamp> entry:localData.entrySet()){
 				Column col=entry.getKey();
 				ValueWithTimestamp data=entry.getValue();
-				long oldNow=fatherTable.getLatestTimestamp(row, col);
-				long oldPrev=prevData.get(col);
-//				System.out.println("ROW:"+row);
-//				System.out.println("STARTTIMESTAMP:"+startTimestamp);
-//				System.out.println("OLD:"+old);
+				Long oldNow=fatherTable.getLatestTimestamp(row, col);
+				if(prevData==null)
+					System.out.println(null+"");
+				Long oldPrev=prevData.get(col);
+				if(oldPrev==null)
+					oldPrev=(long)-1;
 				
-				if(oldNow>oldPrev){
+				if( oldNow>oldPrev){
+					System.out.println("OldNow:"+oldNow);
+					System.out.println("OldPrev:"+oldPrev);
 					return false; //Some else with a later timestamp has committed first
 				}
 			}
@@ -98,8 +101,6 @@ public class NewRowTransaction {
 		if(startTimestamp==-1){
 			startTimestamp=OracleTimestampEmu.getCurTimestamp();
 		}
-		Long old=fatherTable.getLatestTimestamp(row, col);
-		prevData.put(col, old);
 	}
 	
 	private ValueWithTimestamp getLocalValue(Column col,long start_ts,long end_ts,boolean hasEnd){

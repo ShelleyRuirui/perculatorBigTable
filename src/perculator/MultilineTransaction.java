@@ -45,7 +45,7 @@ public class MultilineTransaction {
 		if(laterWrite!=null)
 			return false;
 		
-		String beforeLock=tr.read(new Column("lock"), 0,start_ts);
+		String beforeLock=tr.read(new Column("lock"), 0);
 		if(beforeLock!=null)
 			return false;
 		

@@ -14,6 +14,13 @@ public class BigTable {
 		return tr;
 	}
 	
+	public Map<Column,Long> getCurrentAllColTimestamp(Row row){
+		RowData rowData=rows.get(row);
+		if(rowData==null)
+			return new HashMap<Column,Long>();
+		return rowData.getCurrentALLColTimestamp();
+	}
+	
 	public ValueWithTimestamp read(Row row,Column col,long start_ts,long end_ts){
 		RowData rowData=rows.get(row);
 		if(rowData==null)

@@ -47,4 +47,14 @@ public class RowData {
 			return -1;
 		return colsData.getlatestTimestamp();
 	}
+	
+	public synchronized Map<Column,Long> getCurrentALLColTimestamp(){
+		Map<Column,Long> result=new HashMap<Column,Long>();
+		for(Map.Entry<Column, ColumnData> entry:cols.entrySet()){
+			Column col=entry.getKey();
+			Long latestTimestamp=entry.getValue().getlatestTimestamp();
+			result.put(col, latestTimestamp);
+		}
+		return result;
+	}
 }

@@ -7,10 +7,13 @@ public class NewRowTransaction {
 	Row row;
 	BigTable fatherTable;
 	Map<Column,ValueWithTimestamp> localData;
+	Map<Column,Long> prevData;
+	long startTimestamp=-1;
 	
 	public NewRowTransaction(Row row){
 		this.row=row;
 		localData= new HashMap<Column,ValueWithTimestamp>();
+		prevData=new HashMap<Column,Long>();
 	}
 	
 	public void setTable(BigTable table){
@@ -26,6 +29,7 @@ public class NewRowTransaction {
 	}
 	
 	public void write(Column col,long timestamp,String value){
+		checkAndSetStartTimestamp(col);
 		ValueWithTimestamp tempData=localData.get(col);
 		if(tempData==null){   //Note that only one version is stored for each column
 			tempData=new ValueWithTimestamp(value,timestamp);
@@ -38,12 +42,17 @@ public class NewRowTransaction {
 	}
 	
 	public boolean commit(){
-		synchronized (fatherTable){
+		synchronized (this){
 			for(Map.Entry<Column, ValueWithTimestamp> entry:localData.entrySet()){
 				Column col=entry.getKey();
 				ValueWithTimestamp data=entry.getValue();
-				long old=fatherTable.getLatestTimestamp(row, col);
-				if(data.timestamp<old){
+				long oldNow=fatherTable.getLatestTimestamp(row, col);
+				long oldPrev=prevData.get(col);
+//				System.out.println("ROW:"+row);
+//				System.out.println("STARTTIMESTAMP:"+startTimestamp);
+//				System.out.println("OLD:"+old);
+				
+				if(oldNow>oldPrev){
 					return false; //Some else with a later timestamp has committed first
 				}
 			}
@@ -85,6 +94,13 @@ public class NewRowTransaction {
 		return readVal.value;  //It happens when others modify the table and made seen by others. Not likely
 	}
 	
+	private void checkAndSetStartTimestamp(Column col){
+		if(startTimestamp==-1){
+			startTimestamp=OracleTimestampEmu.getCurTimestamp();
+		}
+		Long old=fatherTable.getLatestTimestamp(row, col);
+		prevData.put(col, old);
+	}
 	
 	private ValueWithTimestamp getLocalValue(Column col,long start_ts,long end_ts,boolean hasEnd){
 		ValueWithTimestamp data=localData.get(col);
@@ -101,6 +117,4 @@ public class NewRowTransaction {
 		}
 		
 	}
-	
-	
 }

@@ -8,7 +8,7 @@ import java.util.TreeMap;
 public class MyTry {
 
 	public static void main(String[] args) {
-		 TreeMap<Long, String> treemap = new TreeMap<Long, String>();
+		 TreeMap<Long, String> treemap = null;
 	      
 	      // populating tree map
 	      treemap.put((long) 2, "two");

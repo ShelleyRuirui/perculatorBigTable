@@ -49,6 +49,7 @@ public class BigTable {
 	}
 	
 	public void print(){
+		System.out.println("****************");
 		for(Map.Entry<Row, RowData> entry:rows.entrySet()){
 			System.out.println(entry.getKey());
 			entry.getValue().print();

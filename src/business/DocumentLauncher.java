@@ -37,7 +37,7 @@ public class DocumentLauncher implements Runnable {
 		boolean result=tr.commit();
 		System.out.println(doc);
 		System.out.println("UpdateFlag:"+updateFlag);
-		System.out.println("UpdateResult"+result);
+		System.out.println("UpdateResult:"+result);
 		System.out.println("***********");
 		return result;
 	}

@@ -6,6 +6,10 @@ public class Test {
 	 * @param args
 	 */
 	public static void main(String[] args) {
+		test2();
+	}
+	
+	public static void test1(){
 		BigTable table=new BigTable();
 		
 		ColumnData cd1=new ColumnData();
@@ -47,6 +51,19 @@ public class Test {
 		tr.commit();
 		result=tr2.read( new Column("col_1"), 9,12);
 		System.out.println(result);
+	}
+	
+	public static void test2(){
+		BigTable table=new BigTable();
+		long start_ts=OracleTimestampEmu.getCurTimestamp();
+		long start_ts2=OracleTimestampEmu.getCurTimestamp();
+		NewRowTransaction tr1=table.startRowTransaction(new Row("row"));
+		NewRowTransaction tr2=table.startRowTransaction(new Row("row"));
+		tr1.write(new Column("col"), start_ts, "TR1");
+		tr2.write(new Column("col"), start_ts2, "TR2");
+		System.out.println(tr1.commit());
+		System.out.println(tr2.commit());
+		table.print();
 	}
 
 }

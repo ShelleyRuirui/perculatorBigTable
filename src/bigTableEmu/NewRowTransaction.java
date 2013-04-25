@@ -8,7 +8,6 @@ public class NewRowTransaction {
 	BigTable fatherTable;
 	Map<Column,ValueWithTimestamp> localData;
 	Map<Column,Long> prevData;
-	long startTimestamp=-1;
 	
 	public NewRowTransaction(Row row){
 		this.row=row;
@@ -53,6 +52,11 @@ public class NewRowTransaction {
 				if(oldPrev==null)
 					oldPrev=(long)-1;
 				
+//				long curTimestamp=data.timestamp;
+//				if(oldNow>startTimestamp && oldNow<curTimestamp){
+//					return false;
+//				}
+				
 				if( oldNow>oldPrev){
 					System.out.println("OldNow:"+oldNow);
 					System.out.println("OldPrev:"+oldPrev);
@@ -95,12 +99,6 @@ public class NewRowTransaction {
 
 		System.out.println("READ: TABLE NEWER THAN LOCAL:"+readVal+" and "+localVal);
 		return readVal.value;  //It happens when others modify the table and made seen by others. Not likely
-	}
-	
-	private void checkAndSetStartTimestamp(Column col){
-		if(startTimestamp==-1){
-			startTimestamp=OracleTimestampEmu.getCurTimestamp();
-		}
 	}
 	
 	private ValueWithTimestamp getLocalValue(Column col,long start_ts,long end_ts,boolean hasEnd){

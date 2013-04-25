@@ -21,7 +21,9 @@ public class RowData {
 		return colsData.read(start_ts);
 	}
 	
-	public void writeCol(Column col,long timestamp,String value){
+	//The synchronize here is to sync between this write and the getLatestTimestamp() method
+	//which has a chance to concurrently this method and it sometimes throws Concurrent Exception
+	public synchronized void writeCol(Column col,long timestamp,String value){
 		ColumnData colsData=cols.get(col);
 		if(colsData==null){
 			colsData=new ColumnData();

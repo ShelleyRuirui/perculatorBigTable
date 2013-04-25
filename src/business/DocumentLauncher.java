@@ -41,7 +41,7 @@ public class DocumentLauncher implements Runnable {
 		System.out.println("***********");
 		return result;
 	}
-
+ 
 	private static int hash(String key) {
 		int hash = 0;
 		int i;
@@ -101,7 +101,6 @@ public class DocumentLauncher implements Runnable {
 		}
 		boolean result1=tr1.commit();	
 		
-			
 		boolean result2=tr2.commit();
 		
 		System.out.println("UpdateFlag1:"+updateFlag1);

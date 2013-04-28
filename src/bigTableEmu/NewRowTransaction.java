@@ -27,6 +27,20 @@ public class NewRowTransaction {
 		return read(col,start_ts,(long)1,false);
 	}
 	
+	//This is used only by cleanup inside multiline read
+	public ValueWithTimestamp read(Column col,long start_ts,long end_ts,int indicator){
+		ValueWithTimestamp readVal=null;
+		ValueWithTimestamp localVal=null;
+		
+		localVal=getLocalValue(col, start_ts, end_ts,true);
+		if(localVal==null){
+			readVal=fatherTable.read(row, col, start_ts,end_ts);
+			return readVal;
+		}
+			
+		return localVal;
+	}
+	
 	public void write(Column col,long timestamp,String value){
 //		checkAndSetStartTimestamp(col);
 		ValueWithTimestamp tempData=localData.get(col);
@@ -51,11 +65,6 @@ public class NewRowTransaction {
 				Long oldPrev=prevData.get(col);
 				if(oldPrev==null)
 					oldPrev=(long)-1;
-				
-//				long curTimestamp=data.timestamp;
-//				if(oldNow>startTimestamp && oldNow<curTimestamp){
-//					return false;
-//				}
 				
 				if( oldNow>oldPrev){
 					System.out.println("OldNow:"+oldNow);

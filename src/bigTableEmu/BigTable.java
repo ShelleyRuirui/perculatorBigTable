@@ -21,6 +21,7 @@ public class BigTable {
 		return rowData.getCurrentALLColTimestamp();
 	}
 	
+	
 	public ValueWithTimestamp read(Row row,Column col,long start_ts,long end_ts){
 		RowData rowData=rows.get(row);
 		if(rowData==null)
@@ -33,6 +34,13 @@ public class BigTable {
 		if(rowData==null)
 			return null;
 		return rowData.readCol(col, start_ts);
+	}
+	
+	public boolean findByValue(Row row,Column col,String val){
+		RowData rowData=rows.get(row);
+		if(rowData==null)
+			return false;
+		return rowData.findByValue(col, val);
 	}
 	
 	public void addRowAndData(Row row,RowData data){

@@ -1,5 +1,6 @@
 package bigTableEmu;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -13,6 +14,15 @@ public class ColumnData {
 
 	public ValueWithTimestamp read(long start_ts) {
 		return read(start_ts, (long) 1, false);
+	}
+	
+	public boolean findByValue(String value){
+		for(Map.Entry<Long, String> entry:versions.entrySet()){
+			String val=entry.getValue();
+			if(val.equals(value))
+				return true;
+		}
+		return false;
 	}
 	
 

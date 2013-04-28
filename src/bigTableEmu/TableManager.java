@@ -14,4 +14,6 @@ public class TableManager {
 	public static void setTable(String tableName,BigTable table){
 		tables.put(tableName, table);
 	}
+	
+	
 }

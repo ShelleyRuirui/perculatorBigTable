@@ -36,6 +36,13 @@ public class RowData {
 		cols.put(col, data);
 	}
 	
+	public boolean findByValue(Column col,String value){
+		ColumnData colsData=cols.get(col);
+		if(colsData==null)
+			return false;
+		return colsData.findByValue(value);
+	}
+	
 	public void print(){
 		for(Map.Entry<Column, ColumnData> entry:cols.entrySet()){
 			System.out.println("\t"+entry.getKey());

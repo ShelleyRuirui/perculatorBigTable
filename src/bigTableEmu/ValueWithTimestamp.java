@@ -10,6 +10,22 @@ public class ValueWithTimestamp {
 		this.timestamp = timestamp;
 	}
 	
+	public String getValue() {
+		return value;
+	}
+
+	public void setValue(String value) {
+		this.value = value;
+	}
+
+	public long getTimestamp() {
+		return timestamp;
+	}
+
+	public void setTimestamp(long timestamp) {
+		this.timestamp = timestamp;
+	}
+
 	public String toString(){
 		return timestamp+" "+value;
 	}

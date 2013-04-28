@@ -8,10 +8,12 @@ import bigTableEmu.NewRowTransaction;
 import bigTableEmu.OracleTimestampEmu;
 import bigTableEmu.Row;
 import bigTableEmu.TableManager;
+import bigTableEmu.ValueWithTimestamp;
 
 public class MultilineTransaction {
 	ArrayList<Write> writes=new ArrayList<Write>();
 	long start_ts;
+	long commit_ts;
 	
 	public MultilineTransaction(){
 		start_ts=OracleTimestampEmu.getCurTimestamp();
@@ -22,12 +24,47 @@ public class MultilineTransaction {
 		writes.add(write);
 	}
 	
+	public void checkIfNeedClean(Row row,String tableName,NewRowTransaction tr,BigTable table){
+		ValueWithTimestamp lock=tr.read(new Column("lock"), 0,start_ts,1);
+		//If it exist with a non null value
+		if(lock!=null&&lock.getValue()!=null){
+			System.out.println(lock);
+			String[] infos=lock.getValue().split("-");
+			String lockTable=infos[0];
+			String lockRow=infos[1];
+			
+			//If it's not the primary lock
+			if(!lockTable.equals(tableName) || !lockRow.equals(row.toString())){
+				BigTable primaryTable=table;
+				if(!lockTable.equals(tableName))
+					primaryTable=TableManager.getTable(lockTable);
+				boolean result=primaryTable.findByValue(new Row(lockRow), new Column("write"), lock.getTimestamp()+"");
+				if(result){
+					//continue process commit and OK now
+					NewRowTransaction trcommit=table.startRowTransaction(row);
+//					long current_ts=OracleTimestampEmu.getCurTimestamp();
+					trcommit.write(new Column("write"), start_ts, lock.getTimestamp()+"");
+					trcommit.erase(new Column("lock"), start_ts);
+					trcommit.commit();
+					return;
+				}
+			}
+			
+			//If it's primary or if it's secondary and it's primary has not committed
+			//Check chubby to see if it will clean up
+			NewRowTransaction trclean=table.startRowTransaction(row);
+//			long current_ts=OracleTimestampEmu.getCurTimestamp();
+			trclean.erase(new Column("lock"), start_ts);
+			trclean.commit();
+		}
+	}
+	
 	public String get(Row row,Column col,String tableName){
 		BigTable table=TableManager.getTable(tableName);
 		NewRowTransaction tr=table.startRowTransaction(row);
 		
 		//TODO handle finding record in the lock column
-		String lock=tr.read(new Column("lock"), 0,start_ts);
+		checkIfNeedClean(row,tableName,tr,table);
 		
 		String lastWrite=tr.read(new Column("write"), 0,start_ts);
 		if(lastWrite==null)
@@ -50,7 +87,7 @@ public class MultilineTransaction {
 			return false;
 		
 		tr.write(c, start_ts, w.value);
-		tr.write(new Column("lock"), start_ts, primary.table+"/"+primary.row+"/"+primary.col);
+		tr.write(new Column("lock"), start_ts, primary.table+"-"+primary.row);
 		return tr.commit();
 	}
 	
@@ -64,8 +101,7 @@ public class MultilineTransaction {
 			if(!prewrite(writes.get(i),primary))
 				return false;
 		}
-		//TODO if abort no clean??
-		long commit_ts=OracleTimestampEmu.getCurTimestamp();
+		commit_ts=OracleTimestampEmu.getCurTimestamp();
 		Write p=primary;
 		BigTable table=TableManager.getTable(p.table);
 		NewRowTransaction tr=table.startRowTransaction(p.row);
@@ -84,5 +120,52 @@ public class MultilineTransaction {
 			curtable.write(w.row, new Column("lock"), commit_ts, null);
 		}
 		return true;
+	}
+	
+	public boolean checkHaveWrites(){
+		if(writes.size()==0)
+			return false;
+		return true;
+	}
+	
+	public boolean preWritePrimary(){
+		Write w=writes.get(0);
+		if(!prewrite(w,w))
+			return false;
+		return true;
+	}
+	
+	public boolean prewriteSecondary(){
+		Write primary=writes.get(0);
+		for(int i=1;i<writes.size();i++){
+			if(!prewrite(writes.get(i),primary))
+				return false;
+		}
+		return true;
+	}
+	
+	public boolean commitPrimary(){
+		Write primary=writes.get(0);
+		long commit_ts=OracleTimestampEmu.getCurTimestamp();
+		Write p=primary;
+		BigTable table=TableManager.getTable(p.table);
+		NewRowTransaction tr=table.startRowTransaction(p.row);
+		String primLock=tr.read(new Column("lock"), start_ts,start_ts);
+		if(primLock==null)
+			return false;
+		tr.write(new Column("write"), commit_ts, start_ts+"");
+		tr.erase(new Column("lock"),commit_ts);
+		if(!tr.commit())
+			return false;
+		return true;
+	}
+	
+	public void commitSecondary(){
+		for(int i=1;i<writes.size();i++){
+			Write w=writes.get(i);
+			BigTable curtable=TableManager.getTable(w.table);
+			curtable.write(w.row, new Column("write"), commit_ts, start_ts+"");
+			curtable.write(w.row, new Column("lock"), commit_ts, null);
+		}
 	}
 }

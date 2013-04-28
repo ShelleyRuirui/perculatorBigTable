@@ -14,6 +14,7 @@ public class MultilineTransaction {
 	ArrayList<Write> writes=new ArrayList<Write>();
 	long start_ts;
 	long commit_ts;
+	NewRowTransaction buffertr; //For single step demo
 	
 	public MultilineTransaction(){
 		start_ts=OracleTimestampEmu.getCurTimestamp();
@@ -24,7 +25,40 @@ public class MultilineTransaction {
 		writes.add(write);
 	}
 	
-	public void checkIfNeedClean(Row row,String tableName,NewRowTransaction tr,BigTable table){
+	public String get(Row row,Column col,String tableName){
+		BigTable table=TableManager.getTable(tableName);
+		NewRowTransaction tr=table.startRowTransaction(row);
+		
+		buffertr=tr;
+		checkIfNeedClean(row,col,tableName);
+		
+		String lastWrite=tr.read(new Column("write"), 0,start_ts);
+		if(lastWrite==null)
+			return null;
+		long ts=Long.parseLong(lastWrite);
+		String value=tr.read(col, ts,ts);
+		return value;
+	}
+	
+	public void beforeClean(Row row,Column col,String tableName){
+		BigTable table=TableManager.getTable(tableName);
+		NewRowTransaction tr=table.startRowTransaction(row);		
+		buffertr=tr;
+	}
+	
+	public String afterClean(Row row,Column col,String tableName){
+		NewRowTransaction tr=buffertr;
+		String lastWrite=tr.read(new Column("write"), 0,start_ts);
+		if(lastWrite==null)
+			return null;
+		long ts=Long.parseLong(lastWrite);
+		String value=tr.read(col, ts,ts);
+		return value;
+	}
+	
+	public void checkIfNeedClean(Row row,Column col,String tableName){
+		BigTable table=TableManager.getTable(tableName);
+		NewRowTransaction tr=buffertr;
 		ValueWithTimestamp lock=tr.read(new Column("lock"), 0,start_ts,1);
 		//If it exist with a non null value
 		if(lock!=null&&lock.getValue()!=null){
@@ -44,35 +78,30 @@ public class MultilineTransaction {
 					NewRowTransaction trcommit=table.startRowTransaction(row);
 //					long current_ts=OracleTimestampEmu.getCurTimestamp();
 					trcommit.write(new Column("write"), start_ts, lock.getTimestamp()+"");
-					trcommit.erase(new Column("lock"), start_ts);
+					trcommit.erase(new Column("lock"), lock.getTimestamp());
 					trcommit.commit();
 					return;
+				}else{
+					//It the secondary but primary didn't commit
+					NewRowTransaction trclean=primaryTable.startRowTransaction(new Row(lockRow));
+					trclean.erase(new Column("lock"), lock.getTimestamp());
+					trclean.commit();
+					
+					NewRowTransaction trclean2=table.startRowTransaction(row);
+					trclean2.erase(new Column("lock"), lock.getTimestamp());
+					trclean2.commit();
 				}
 			}
 			
-			//If it's primary or if it's secondary and it's primary has not committed
+			//If it's primary and not committed
 			//Check chubby to see if it will clean up
 			NewRowTransaction trclean=table.startRowTransaction(row);
-//			long current_ts=OracleTimestampEmu.getCurTimestamp();
-			trclean.erase(new Column("lock"), start_ts);
+			trclean.erase(new Column("lock"), lock.getTimestamp());
 			trclean.commit();
 		}
 	}
 	
-	public String get(Row row,Column col,String tableName){
-		BigTable table=TableManager.getTable(tableName);
-		NewRowTransaction tr=table.startRowTransaction(row);
-		
-		//TODO handle finding record in the lock column
-		checkIfNeedClean(row,tableName,tr,table);
-		
-		String lastWrite=tr.read(new Column("write"), 0,start_ts);
-		if(lastWrite==null)
-			return null;
-		long ts=Long.parseLong(lastWrite);
-		String value=tr.read(col, ts,ts);
-		return value;
-	}
+	
 	
 	public boolean prewrite(Write w,Write primary){
 		Column c=w.col;
@@ -146,7 +175,7 @@ public class MultilineTransaction {
 	
 	public boolean commitPrimary(){
 		Write primary=writes.get(0);
-		long commit_ts=OracleTimestampEmu.getCurTimestamp();
+		commit_ts=OracleTimestampEmu.getCurTimestamp();
 		Write p=primary;
 		BigTable table=TableManager.getTable(p.table);
 		NewRowTransaction tr=table.startRowTransaction(p.row);

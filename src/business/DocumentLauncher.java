@@ -58,11 +58,11 @@ public class DocumentLauncher implements Runnable {
 	}
 
 	public static void main(String[] args) {
-//		prepareBigTable();
-//		test2();
+		prepareBigTable();
+		test2();
 		
 //		consoleRun();
-		consoleRunWithClean();
+//		consoleRunWithClean();
 	}
 	
 	public static void consoleRun(){
@@ -71,34 +71,31 @@ public class DocumentLauncher implements Runnable {
 		System.out.println("Transaction 1 started");
 		Document doc1=new Document("http://url1","abc");
 		MultilineTransaction tr1 = new MultilineTransaction();
-		tr1.set(new Row(doc1.url), new Column("contents"), "document",
-				doc1.contents);
+		tr1.set(new Row(doc1.url), new Column("contents"), "document",doc1.contents);
 		System.out.println("Transaction 1 write 'document' table buffered");
 		
 		int hash = hash(doc1.contents);
-
-		String canonical1 = tr1.get(new Row(hash + ""), new Column(
-				"canonical-url"), "dups");
+		String canonical1 = tr1.get(new Row(hash + ""), new Column("canonical-url"), "dups");
 		boolean updateFlag1=false;
 		if (canonical1 == null){
-			tr1.set(new Row(hash + ""), new Column("canonical-url"), "dups",
-					doc1.url);
+			tr1.set(new Row(hash + ""), new Column("canonical-url"), "dups",doc1.url);
 			updateFlag1=true;
 			System.out.println("Transaction 1 write 'dups' table buffered");
 		}
 		
+//		System.out.println(tr1.checkHaveWrites());
+//		System.out.println(tr1.preWritePrimary());
+//		System.out.println(tr1.prewriteSecondary());
 		
 		System.out.println("Transaction 2 started");
 		Document doc2=new Document("http://url2","abc");
 		MultilineTransaction tr2 = new MultilineTransaction();
-		tr2.set(new Row(doc2.url), new Column("contents"), "document",
-				doc2.contents);
+		tr2.set(new Row(doc2.url), new Column("contents"), "document",doc2.contents);
 		System.out.println("Transaction 2 write 'document' table buffered");
 		
 		int hash2 = hash(doc2.contents);
-
-		String canonical2 = tr2.get(new Row(hash2 + ""), new Column(
-				"canonical-url"), "dups");
+		String canonical2 = tr2.get(new Row(hash2 + ""), new Column("canonical-url"), "dups");
+		printAllTables();
 		boolean updateFlag2=false;
 		if (canonical2 == null){
 			tr2.set(new Row(hash2 + ""), new Column("canonical-url"), "dups",
@@ -106,7 +103,6 @@ public class DocumentLauncher implements Runnable {
 			updateFlag2=true;
 			System.out.println("Transaction 2 write 'dups' table buffered");
 		}
-		
 		
 		System.out.println(tr1.checkHaveWrites());
 		System.out.println(tr2.checkHaveWrites());
@@ -129,12 +125,13 @@ public class DocumentLauncher implements Runnable {
 		
 		int hash = hash(doc1.contents);
 
-		String canonical1 = tr1.get(new Row(hash + ""), new Column(
-				"canonical-url"), "dups");
+		//The get method is split into these three steps
+		tr1.beforeClean(new Row(hash + ""), new Column("canonical-url"), "dups");
+		tr1.checkIfNeedClean(new Row(hash + ""), new Column("canonical-url"), "dups");
+		String canonical1 = tr1.afterClean(new Row(hash + ""), new Column("canonical-url"), "dups");
 		boolean updateFlag1=false;
 		if (canonical1 == null){
-			tr1.set(new Row(hash + ""), new Column("canonical-url"), "dups",
-					doc1.url);
+			tr1.set(new Row(hash + ""), new Column("canonical-url"), "dups",doc1.url);
 			updateFlag1=true;
 			System.out.println("Transaction 1 write 'dups' table buffered");
 		}
@@ -142,8 +139,9 @@ public class DocumentLauncher implements Runnable {
 		System.out.println(tr1.checkHaveWrites());
 		System.out.println(tr1.preWritePrimary());
 		System.out.println(tr1.prewriteSecondary());
+		//If below is commented, then the transaction fails. Otherwise, it is successful 
 		System.out.println(tr1.commitPrimary());
-		
+		System.out.println("////////////////////////After tr1 prewrite/////////////////////");
 		TableManager.getTable("dups").print();
 		TableManager.getTable("document").print();
 		
@@ -151,14 +149,15 @@ public class DocumentLauncher implements Runnable {
 		System.out.println("Transaction 2 started");
 		Document doc2=new Document("http://url2","abc");
 		MultilineTransaction tr2 = new MultilineTransaction();
-		tr2.set(new Row(doc2.url), new Column("contents"), "document",
-				doc2.contents);
+		tr2.set(new Row(doc2.url), new Column("contents"), "document",doc2.contents);
 		System.out.println("Transaction 2 write 'document' table buffered");
 		
 		int hash2 = hash(doc2.contents);
 
-		String canonical2 = tr2.get(new Row(hash2 + ""), new Column(
-				"canonical-url"), "dups");
+		//The get method is split into the three parts including the clean up
+		tr2.beforeClean(new Row(hash2 + ""), new Column("canonical-url"), "dups");
+		tr2.checkIfNeedClean(new Row(hash2 + ""), new Column("canonical-url"), "dups");
+		String canonical2 = tr2.afterClean(new Row(hash2 + ""), new Column("canonical-url"), "dups");
 		boolean updateFlag2=false;
 		if (canonical2 == null){
 			tr2.set(new Row(hash2 + ""), new Column("canonical-url"), "dups",
@@ -166,6 +165,10 @@ public class DocumentLauncher implements Runnable {
 			updateFlag2=true;
 			System.out.println("Transaction 2 write 'dups' table buffered");
 		}
+		
+		TableManager.getTable("dups").print();
+		TableManager.getTable("document").print();
+		System.out.println("///////////////After tr2 clean////////////////");
 		System.out.println(tr2.checkHaveWrites());
 		System.out.println(tr2.preWritePrimary());
 		System.out.println(tr2.prewriteSecondary());
@@ -176,6 +179,13 @@ public class DocumentLauncher implements Runnable {
 		TableManager.getTable("document").print();
 	}
 	
+	public static void printAllTables(){
+		System.out.println("//////////////////");
+		TableManager.getTable("dups").print();
+		System.out.println("-----------------------");
+		TableManager.getTable("document").print();
+		System.out.println("//////////////////");
+	}
 	
 	public static void test1(){
 		Document doc1 = new Document("http://url1.com", "abc");
